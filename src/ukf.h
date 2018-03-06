@@ -67,6 +67,11 @@ public:
   ///* Sigma point spreading parameter
   double lambda_;
 
+  ///* Radar measurement dimension
+  double n_z_radar_;
+
+  ///* Lasar measurement dimension
+  double n_z_laser_;
 
   /**
    * Constructor
