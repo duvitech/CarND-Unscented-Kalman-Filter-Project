@@ -28,9 +28,30 @@ public:
   ///* state covariance matrix
   MatrixXd P_;
 
+  ///* sigma point matrix
+  MatrixXd Xsig_;
+
+  ///* augmented sigma point matrix
+  MatrixXd Xsig_aug_;
+
   ///* predicted sigma points matrix
   MatrixXd Xsig_pred_;
+  ///* sigma points in measurement space
+  MatrixXd Zsig_;
 
+  ///* incoming radar measurement
+  VectorXd z_;
+
+  ///* mean predicted measurement
+  VectorXd z_pred_;
+
+  ///* predicted measurement covariance
+  MatrixXd S_;
+
+  MatrixXd R_laser_;
+
+  MatrixXd R_radar_;
+  
   ///* time when the state is true, in us
   long long time_us_;
 
@@ -73,6 +94,18 @@ public:
   ///* Lasar measurement dimension
   double n_z_laser_;
 
+  ///* Number of sigma points 
+  int n_sig_;
+  
+  ///* small values
+  double EPS;
+
+  ///* the current NIS for radar
+  double NIS_radar_;
+
+  ///* the current NIS for laser
+  double NIS_laser_;
+
   /**
    * Constructor
    */
@@ -95,7 +128,6 @@ public:
    * @param delta_t Time between k and k+1 in s
    */
   void Prediction(double delta_t);
-
   /**
    * Updates the state and the state covariance matrix using a laser measurement
    * @param meas_package The measurement at k+1
@@ -107,6 +139,11 @@ public:
    * @param meas_package The measurement at k+1
    */
   void UpdateRadar(MeasurementPackage meas_package);
+
+  void AugmentedPoints();
+
+  void UpdateState(int n_z, bool use_radar_);
+
 };
 
 #endif /* UKF_H */
