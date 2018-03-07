@@ -36,6 +36,7 @@ public:
 
   ///* predicted sigma points matrix
   MatrixXd Xsig_pred_;
+
   ///* sigma points in measurement space
   MatrixXd Zsig_;
 
@@ -85,17 +86,11 @@ public:
   ///* Augmented state dimension
   int n_aug_;
 
+  ///* Number of sigma points
+  int n_sig_;
+
   ///* Sigma point spreading parameter
   double lambda_;
-
-  ///* Radar measurement dimension
-  double n_z_radar_;
-
-  ///* Lasar measurement dimension
-  double n_z_laser_;
-
-  ///* Number of sigma points 
-  int n_sig_;
   
   ///* small values
   double EPS;

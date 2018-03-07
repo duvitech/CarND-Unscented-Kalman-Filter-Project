@@ -1,6 +1,7 @@
 #include "ukf.h"
 #include "Eigen/Dense"
 #include <iostream>
+#include <math.h>
 
 using namespace std;
 using Eigen::MatrixXd;
@@ -12,6 +13,8 @@ using std::vector;
  * This is scaffolding, do not modify
  */
 UKF::UKF() {
+  is_initialized_ = false;
+
   // if this is false, laser measurements will be ignored (except during init)
   use_laser_ = true;
 
@@ -26,13 +29,33 @@ UKF::UKF() {
   P_ = MatrixXd(5, 5);
   P_.setIdentity(5, 5);
 
+  // State dimension
+  n_x_ = x_.size();
+
+  // Augmented state dimension
+  n_aug_ = n_x_ + 2;
+
+  // Number of sigma points
+  n_sig_ = 2 * n_aug_ + 1;
+
+  // Sigma point spreading parameter
+  lambda_ = 3 - n_aug_;
+
+  //create sigma point matrix
+  Xsig_ = MatrixXd(n_x_, 2 * n_x_ + 1);
+
+  //create sigma point matrix
+  Xsig_aug_ = MatrixXd(n_aug_, n_sig_);
+
+  // Predicted sigma points as columns
+  Xsig_pred_ = MatrixXd(n_x_, n_sig_);
+
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 0.4;
+  std_a_ = 0.2;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 0.4;
-  
-  //DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.
+  std_yawdd_ = 0.2;
+
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
 
@@ -62,8 +85,6 @@ UKF::UKF() {
   // state 
   n_x_ = x_.size();
   n_aug_ = n_x_ + 2;
-  n_z_laser_ = 2;
-  n_z_radar_ = 3;
   lambda_ = 3 - n_aug_;
 
   // Number of sigma points
@@ -73,19 +94,41 @@ UKF::UKF() {
   Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
   Xsig_pred_.fill(0.0);
  
+  // R matrices
+  R_radar_ = MatrixXd(3, 3);
+  R_radar_ << std_radr_ * std_radr_, 0, 0,
+              0, std_radphi_ * std_radphi_, 0,
+              0, 0, std_radrd_ * std_radrd_;
+
+  R_laser_ = MatrixXd(2,2);
+  R_laser_ << std_laspx_*std_laspx_, 0,
+              0, std_laspy_*std_laspy_;
+
   /* initialize and set weight matrix */
-	weights_  = VectorXd(2 * n_aug_ + 1);
+	weights_  = VectorXd(n_sig_);
 	double weight_0 = lambda_ / (lambda_ + n_aug_);
 	weights_(0) = weight_0;
-	for (int i = 1; i<2 * n_aug_ + 1; i++) {
+	for (int i = 1; i<n_sig_; i++) {
 		double weight = 0.5 / (n_aug_ + lambda_);
 		weights_(i) = weight;
 	}
 
-  is_initialized_ = false;
 }
 
 UKF::~UKF() {}
+
+/**
+ * we would like to make sure that `phi` is always with in `[-3.14, 3.14]` bracket
+ * @param phi
+ * @return phi
+ */
+static double SNormalizeAngle2(double phi)
+{
+  while (phi > M_PI) { phi -= 2. * M_PI; };
+  while (phi < -M_PI) { phi += 2. * M_PI; };
+
+  return phi;
+}
 
 /**
  * @param {MeasurementPackage} meas_package The latest measurement data of
@@ -190,23 +233,6 @@ void UKF::AugmentedPoints()
     Xsig_aug_.col(i+1)       = x_aug + sqrt(lambda_+n_aug_) * L.col(i);
     Xsig_aug_.col(i+1+n_aug_) = x_aug - sqrt(lambda_+n_aug_) * L.col(i);
   }
-}
-
-static double SNormalizeAngle2(double phi)
-{
-  // Method 2:
-  // cout << "Normalising Angle" << endl;
-  //return atan2(sin(phi), cos(phi));
-  
-  // Method 1:
-  while (phi > M_PI) {
-    phi -= 2.*M_PI;
-  };
-  while (phi < -M_PI) {
-    phi += 2.*M_PI;
-  };
-  
-  return phi;
 }
 
 /**
